@@ -32,10 +32,19 @@ function useAuthStatus() {
       }
 
       if (userError) {
+        const isSessionMissing =
+          userError.message?.toLowerCase().includes('session') ||
+          userError.message?.toLowerCase().includes('not authenticated') ||
+          userError.message?.toLowerCase().includes('invalid token')
+
         setUser(null)
         setHasProfile(false)
         setIsAdmin(false)
-        setAuthError(userError.message || 'Could not verify your authentication status.')
+
+        if (!isSessionMissing) {
+          setAuthError(userError.message || 'Could not verify your authentication status.')
+        }
+
         setIsLoading(false)
         return
       }
