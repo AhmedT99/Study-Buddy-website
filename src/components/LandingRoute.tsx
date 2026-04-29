@@ -8,7 +8,7 @@ type LandingRouteProps = {
 }
 
 function LandingRoute({ children }: LandingRouteProps) {
-  const { isLoading, user, authError } = useAuthStatus()
+  const { isLoading, user } = useAuthStatus()
 
   if (isLoading) {
     return <LoadingCard text="Loading page..." />
@@ -16,17 +16,6 @@ function LandingRoute({ children }: LandingRouteProps) {
 
   if (user) {
     return <Navigate to="/dashboard" replace />
-  }
-
-  if (authError) {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl border border-danger/25 bg-danger/10 p-6 text-center">
-        <p className="font-display text-base font-medium text-text-primary">
-          Access check failed
-        </p>
-        <p className="mt-2 text-sm text-red-200">{authError}</p>
-      </div>
-    )
   }
 
   return <>{children}</>
