@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { showToast } from '../components/Toast'
 import supabase from '../lib/supabase'
 
 function SignupPage() {
@@ -14,7 +15,7 @@ function SignupPage() {
     setErrorMessage('')
     setIsLoading(true)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     })
@@ -23,120 +24,110 @@ function SignupPage() {
 
     if (error) {
       setErrorMessage(error.message)
+      showToast(error.message, 'error')
       return
     }
 
+    if (!data.session) {
+      showToast('Account created. Verify your email before signing in.', 'success')
+      navigate('/verify-email')
+      return
+    }
+
+    showToast('Account created! Complete your profile.', 'success')
     navigate('/profile')
   }
 
   return (
-    <section className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-md sm:p-10">
-        <p className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
-          New account
-        </p>
-        <h2 className="mt-6 text-3xl font-bold text-slate-900 sm:text-4xl">
-          Join a modern study network for students.
-        </h2>
-        <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">
-          Create your account in a few seconds. After signup, you will complete
-          your profile so the app can guide you to the right dashboard flow.
-        </p>
+    <div className="grid min-h-[calc(100dvh-3.5rem)] lg:grid-cols-2">
+      <div className="relative order-2 flex flex-col justify-center px-4 py-12 sm:px-8 lg:order-1 lg:px-16">
+        <div className="mx-auto w-full max-w-md">
+          <p className="font-display text-xs font-medium uppercase tracking-[0.2em] text-accent-text lg:hidden">
+            Join
+          </p>
+          <h3 className="mt-3 font-display text-2xl font-medium text-text-primary">Create account</h3>
+          <p className="mt-2 text-sm text-text-secondary">
+            Email and password — then we will guide you through your profile.
+          </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Step 1</p>
-            <p className="mt-2 text-sm text-slate-600">Create your account</p>
-          </div>
+          <form onSubmit={handleSignup} className="mt-8 space-y-5">
+            <div>
+              <label htmlFor="signup-email" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                Email
+              </label>
+              <input
+                id="signup-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@university.edu"
+                className="w-full rounded-xl border border-border bg-surface-1 px-4 py-3 text-sm text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
+                required
+              />
+            </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Step 2</p>
-            <p className="mt-2 text-sm text-slate-600">Set up your profile</p>
-          </div>
+            <div>
+              <label htmlFor="signup-password" className="mb-1.5 block text-xs font-medium text-text-secondary">
+                Password
+              </label>
+              <input
+                id="signup-password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="At least 6 characters"
+                className="w-full rounded-xl border border-border bg-surface-1 px-4 py-3 text-sm text-text-primary outline-none transition-all duration-200 placeholder:text-text-tertiary focus:border-accent/50 focus:ring-2 focus:ring-accent/15"
+                required
+              />
+            </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Step 3</p>
-            <p className="mt-2 text-sm text-slate-600">Open your dashboard</p>
-          </div>
+            {errorMessage && (
+              <p className="rounded-xl border border-danger/25 bg-danger/10 px-4 py-3 text-sm text-red-200">
+                {errorMessage}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-xl bg-accent py-3 font-display text-sm font-semibold text-surface-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-200 hover:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? 'Creating...' : 'Continue to profile'}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-sm text-text-secondary">
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-accent-text underline-offset-4 hover:underline">
+              Log in
+            </Link>
+          </p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md sm:p-8">
+      <div className="relative order-1 hidden flex-col justify-between overflow-hidden border-b border-border bg-surface-1 px-10 py-12 lg:order-2 lg:flex lg:border-b-0 lg:border-l">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(195deg,transparent_0%,rgba(45,212,191,0.06)_50%,transparent_100%)]" />
+        <div className="pointer-events-none absolute -right-20 top-1/3 h-64 w-64 rounded-full bg-accent/10 blur-[90px]" />
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
-            Sign up
+          <p className="font-display text-xs font-medium uppercase tracking-[0.22em] text-accent-text">
+            New member
           </p>
-          <h3 className="mt-3 text-2xl font-bold text-slate-900">
-            Create your account
-          </h3>
-          <p className="mt-2 text-sm text-slate-600">
-            Use your email and password to get started.
-          </p>
+          <h2 className="mt-6 max-w-md font-display text-3xl font-medium leading-tight tracking-tight text-text-primary">
+            Three steps. One calm onboarding path.
+          </h2>
         </div>
-
-        <form onSubmit={handleSignup} className="mt-8 space-y-5">
-          <div>
-            <label
-              htmlFor="signup-email"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Email
-            </label>
-            <input
-              id="signup-email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="student@email.com"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="signup-password"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Password
-            </label>
-            <input
-              id="signup-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Create your password"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-              required
-            />
-          </div>
-
-          {errorMessage && (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorMessage}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
-          >
-            {isLoading ? 'Creating account...' : 'Continue to Profile'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Already have an account?{' '}
-          <Link
-            to="/login"
-            className="font-semibold text-blue-600 transition hover:text-blue-700"
-          >
-            Login
-          </Link>
-        </p>
+        <ol className="relative max-w-sm space-y-5">
+          {['Create your credentials', 'Tell us how you study', 'Open requests & messages'].map((step, i) => (
+            <li key={step} className="flex gap-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 font-display text-xs font-semibold text-accent-text">
+                {i + 1}
+              </span>
+              <span className="pt-1 text-sm text-text-secondary">{step}</span>
+            </li>
+          ))}
+        </ol>
       </div>
-    </section>
+    </div>
   )
 }
 

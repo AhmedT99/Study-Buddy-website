@@ -3,19 +3,19 @@ import { Navigate } from 'react-router-dom'
 import useAuthStatus from '../hooks/useAuthStatus'
 import LoadingCard from './LoadingCard'
 
-type ProtectedProfileRouteProps = {
+type LandingRouteProps = {
   children: ReactNode
 }
 
-function ProtectedProfileRoute({ children }: ProtectedProfileRouteProps) {
+function LandingRoute({ children }: LandingRouteProps) {
   const { isLoading, user, authError } = useAuthStatus()
 
   if (isLoading) {
     return <LoadingCard text="Loading page..." />
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />
+  if (user) {
+    return <Navigate to="/dashboard" replace />
   }
 
   if (authError) {
@@ -32,4 +32,4 @@ function ProtectedProfileRoute({ children }: ProtectedProfileRouteProps) {
   return <>{children}</>
 }
 
-export default ProtectedProfileRoute
+export default LandingRoute

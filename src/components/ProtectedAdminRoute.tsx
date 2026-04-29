@@ -3,15 +3,15 @@ import { Navigate } from 'react-router-dom'
 import useAuthStatus from '../hooks/useAuthStatus'
 import LoadingCard from './LoadingCard'
 
-type ProtectedProfileRouteProps = {
+type ProtectedAdminRouteProps = {
   children: ReactNode
 }
 
-function ProtectedProfileRoute({ children }: ProtectedProfileRouteProps) {
-  const { isLoading, user, authError } = useAuthStatus()
+function ProtectedAdminRoute({ children }: ProtectedAdminRouteProps) {
+  const { isLoading, user, isAdmin, authError } = useAuthStatus()
 
   if (isLoading) {
-    return <LoadingCard text="Loading page..." />
+    return <LoadingCard text="Loading admin page..." />
   }
 
   if (!user) {
@@ -29,7 +29,11 @@ function ProtectedProfileRoute({ children }: ProtectedProfileRouteProps) {
     )
   }
 
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />
+  }
+
   return <>{children}</>
 }
 
-export default ProtectedProfileRoute
+export default ProtectedAdminRoute

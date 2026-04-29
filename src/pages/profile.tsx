@@ -1,6 +1,8 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { showToast } from '../components/Toast'
 import supabase from '../lib/supabase'
+import { getProfileMeta, saveProfileMeta } from '../services/profileMetaService'
 import { getProfileByUserId } from '../services/profileService'
 
 type ProfileFormData = {
@@ -72,6 +74,10 @@ const countryOptions = [
 
 const genderOptions = ['Male', 'Female', 'Prefer not to say']
 const avatarBucketName = 'avatars'
+const inputClassName =
+  'w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-sm text-text-primary outline-none transition-colors duration-200 placeholder:text-text-tertiary focus:border-accent/40 focus:ring-1 focus:ring-accent/20'
+const sectionCardClassName =
+  'scroll-mt-28 rounded-2xl border border-border bg-surface-1 p-6'
 
 function ProfilePage() {
   const navigate = useNavigate()
@@ -81,6 +87,7 @@ function ProfilePage() {
   const [profilePictureUrl, setProfilePictureUrl] = useState('')
   const [imagePreviewUrl, setImagePreviewUrl] = useState('')
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
+  const [skillsInput, setSkillsInput] = useState('')
   const [isPageLoading, setIsPageLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -102,6 +109,8 @@ function ProfilePage() {
       setUserId(user.id)
 
       const { data, error } = await getProfileByUserId(user.id)
+      const profileMeta = getProfileMeta(user.id)
+      setSkillsInput(profileMeta.skills.join(', '))
 
       if (error) {
         setErrorMessage(error.message)
@@ -204,6 +213,12 @@ function ProfilePage() {
       bio: formData.bio,
       profile_picture_url: savedProfilePictureUrl,
     }
+    const parsedSkills = skillsInput
+      .split(',')
+      .map((skill) => skill.trim())
+      .filter((skill) => skill !== '')
+
+    saveProfileMeta(userId, { skills: parsedSkills })
 
     if (profileExists) {
       const { error } = await supabase
@@ -215,9 +230,11 @@ function ProfilePage() {
 
       if (error) {
         setErrorMessage(error.message)
+        showToast('Failed to save profile', 'error')
         return
       }
 
+      showToast('Profile saved successfully', 'success')
       navigate('/dashboard')
       return
     }
@@ -228,51 +245,62 @@ function ProfilePage() {
 
     if (error) {
       setErrorMessage(error.message)
+      showToast('Failed to create profile', 'error')
       return
     }
 
+    showToast('Profile created successfully', 'success')
     navigate('/dashboard')
   }
 
   if (isPageLoading) {
     return (
-      <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-md">
-        <p className="text-sm text-slate-600">Loading profile...</p>
+      <div className="mx-auto max-w-sm rounded-xl border border-border bg-surface-1 p-8 text-center">
+        <div className="mx-auto mb-3 h-2 w-2 animate-pulse rounded-full bg-accent" />
+        <p className="text-sm text-text-secondary">Loading profile...</p>
       </div>
     )
   }
 
   return (
-    <section className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-6 shadow-md sm:p-8 lg:p-10">
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="grid gap-10 xl:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
-            Profile setup
-          </p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-900">
-            Complete your student profile
+          <p className="font-display text-xs font-medium uppercase tracking-[0.2em] text-accent-text">Profile</p>
+          <h2 className="mt-2 font-display text-xl font-medium leading-snug text-text-primary">
+            How you show up in the network.
           </h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Add your study details so the app can give you the right experience.
+          <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+            Jump between sections — nothing about validation or save behavior changed.
           </p>
         </div>
-
-        <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          Save your profile to continue to the dashboard
-        </div>
+        <nav className="hidden flex-col gap-1 border-t border-border pt-6 text-sm xl:flex">
+          <a href="#section-photo" className="rounded-lg px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary">
+            Photo
+          </a>
+          <a href="#section-basic" className="rounded-lg px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary">
+            Basics
+          </a>
+          <a href="#section-preferences" className="rounded-lg px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary">
+            Study prefs
+          </a>
+          <a href="#section-bio" className="rounded-lg px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary">
+            Bio
+          </a>
+        </nav>
       </div>
 
-      <form onSubmit={handleSaveProfile} className="mt-8 space-y-8">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">Profile photo</h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Upload a clear image for your student profile.
-          </p>
-        </div>
+      <form onSubmit={handleSaveProfile} className="space-y-6">
+        <div id="section-photo" className={sectionCardClassName}>
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold text-text-primary">Profile photo</h3>
+            <p className="mt-1 text-sm text-text-tertiary">
+              Upload a clear image that makes your profile feel personal.
+            </p>
+          </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2">
               {imagePreviewUrl ? (
                 <img
                   src={imagePreviewUrl}
@@ -280,14 +308,14 @@ function ProfilePage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-sm font-semibold text-slate-400">Photo</span>
+                <span className="font-display text-xs font-medium text-text-tertiary">Photo</span>
               )}
             </div>
 
             <div className="flex-1">
               <label
                 htmlFor="profile-picture"
-                className="mb-2 block text-sm font-medium text-slate-700"
+                className="mb-1.5 block text-xs font-medium text-text-secondary"
               >
                 Profile Picture
               </label>
@@ -296,29 +324,25 @@ function ProfilePage() {
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className="block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+                className="block w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-sm text-text-secondary file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-surface-0"
               />
-              <p className="mt-2 text-sm text-slate-500">
-                Your image will be uploaded to the public `avatars` bucket.
-              </p>
             </div>
           </div>
         </div>
 
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">
-            Basic information
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Tell us about your academic background.
-          </p>
-        </div>
+        <div id="section-basic" className={sectionCardClassName}>
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold text-text-primary">Basic information</h3>
+            <p className="mt-1 text-sm text-text-tertiary">
+              Tell others about your academic background and current focus.
+            </p>
+          </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label
               htmlFor="name"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Name
             </label>
@@ -329,7 +353,7 @@ function ProfilePage() {
               value={formData.name}
               onChange={handleInputChange}
               placeholder="Your full name"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             />
           </div>
@@ -337,7 +361,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="university"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               University
             </label>
@@ -348,7 +372,7 @@ function ProfilePage() {
               value={formData.university}
               onChange={handleInputChange}
               placeholder="Your university"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             />
           </div>
@@ -356,7 +380,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="education_level"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Education Level
             </label>
@@ -365,7 +389,7 @@ function ProfilePage() {
               name="education_level"
               value={formData.education_level}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select education level</option>
@@ -380,7 +404,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="study_level"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Study Level
             </label>
@@ -389,7 +413,7 @@ function ProfilePage() {
               name="study_level"
               value={formData.study_level}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select study level</option>
@@ -404,7 +428,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="major"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Major
             </label>
@@ -415,7 +439,7 @@ function ProfilePage() {
               value={formData.major}
               onChange={handleInputChange}
               placeholder="Computer Science"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             />
           </div>
@@ -423,7 +447,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="field_of_study"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Field Of Study
             </label>
@@ -434,26 +458,26 @@ function ProfilePage() {
               value={formData.field_of_study}
               onChange={handleInputChange}
               placeholder="Software Engineering"
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             />
           </div>
         </div>
-
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">
-            Study preferences
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Select how you like to learn and communicate.
-          </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div id="section-preferences" className={sectionCardClassName}>
+          <div className="mb-5">
+            <h3 className="font-display text-base font-semibold text-text-primary">Study preferences</h3>
+            <p className="mt-1 text-sm text-text-tertiary">
+              Choose the working style and communication settings that fit you.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label
               htmlFor="preferred_study_style"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Preferred Study Style
             </label>
@@ -462,7 +486,7 @@ function ProfilePage() {
               name="preferred_study_style"
               value={formData.preferred_study_style}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select study style</option>
@@ -477,7 +501,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="preferred_language"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Preferred Language
             </label>
@@ -486,7 +510,7 @@ function ProfilePage() {
               name="preferred_language"
               value={formData.preferred_language}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select language</option>
@@ -501,7 +525,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="timezone"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Timezone
             </label>
@@ -510,7 +534,7 @@ function ProfilePage() {
               name="timezone"
               value={formData.timezone}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select timezone</option>
@@ -525,7 +549,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="country"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Country
             </label>
@@ -534,7 +558,7 @@ function ProfilePage() {
               name="country"
               value={formData.country}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select country</option>
@@ -549,7 +573,7 @@ function ProfilePage() {
           <div>
             <label
               htmlFor="gender"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
             >
               Gender
             </label>
@@ -558,7 +582,7 @@ function ProfilePage() {
               name="gender"
               value={formData.gender}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className={inputClassName}
               required
             >
               <option value="">Select gender</option>
@@ -570,15 +594,16 @@ function ProfilePage() {
             </select>
           </div>
         </div>
+        </div>
 
-        <div>
+        <div id="section-bio" className={sectionCardClassName}>
           <label
             htmlFor="bio"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-1.5 block text-xs font-medium text-text-secondary"
           >
             Bio
           </label>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-xs text-text-tertiary">
             Share a short summary about your study goals and interests.
           </p>
           <textarea
@@ -586,34 +611,52 @@ function ProfilePage() {
             name="bio"
             value={formData.bio}
             onChange={handleInputChange}
-            rows={5}
-            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+            rows={4}
+            className={inputClassName}
             placeholder="I enjoy focused study sessions, group revision, and helping others with difficult topics."
             required
           />
+          <div className="mt-4">
+            <label
+              htmlFor="skills"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
+            >
+              Skills
+            </label>
+            <p className="mb-2 text-xs text-text-tertiary">
+              Comma-separated skills help others discover your profile.
+            </p>
+            <input
+              id="skills"
+              value={skillsInput}
+              onChange={(event) => setSkillsInput(event.target.value)}
+              placeholder="Calculus, Java, IELTS, Time management"
+              className={inputClassName}
+            />
+          </div>
         </div>
 
         {errorMessage && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="rounded-lg border border-danger/20 bg-danger/10 px-3 py-2.5 text-sm text-red-300">
             {errorMessage}
           </p>
         )}
 
-        <div className="flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">
+        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface-1 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-text-secondary">
             Your profile will be saved securely to your account.
           </p>
 
           <button
             type="submit"
             disabled={isSaving}
-            className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+            className="rounded-lg bg-accent px-5 py-2.5 font-display text-sm font-medium text-surface-0 shadow-[0_1px_2px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-200 hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? 'Saving profile...' : 'Save Profile'}
           </button>
         </div>
       </form>
-    </section>
+    </div>
   )
 }
 
