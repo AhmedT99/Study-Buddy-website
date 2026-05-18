@@ -31,6 +31,19 @@ export type CreateRequestData = {
 
 const DEFAULT_REQUEST_PAGE_SIZE = 20
 
+function normalizeStudyRequestRow(request: Record<string, unknown>): StudyRequestRow {
+  return {
+    id: Number(request.id) || 0,
+    sender_id: String(request.sender_id ?? ''),
+    receiver_id: String(request.receiver_id ?? ''),
+    status: String(request.status ?? ''),
+    title: String(request.title ?? ''),
+    description: String(request.description ?? ''),
+    required_role: String(request.required_role ?? ''),
+    optional_availability: String(request.optional_availability ?? ''),
+  }
+}
+
 export async function getRequestsFeed(page = 0, pageSize = DEFAULT_REQUEST_PAGE_SIZE) {
   const from = page * pageSize
   const to = from + pageSize - 1
@@ -60,16 +73,10 @@ export async function getRequestsFeed(page = 0, pageSize = DEFAULT_REQUEST_PAGE_
   }
 
   const requestItems = requests.map((request) => {
+    const normalized = normalizeStudyRequestRow(request as Record<string, unknown>)
     return {
-      ...request,
-      sender_id: String(request.sender_id || ''),
-      receiver_id: String(request.receiver_id || ''),
-      title: String(request.title || ''),
-      description: String(request.description || ''),
-      required_role: String(request.required_role || ''),
-      optional_availability: String(request.optional_availability || ''),
-      status: String(request.status || ''),
-      senderProfile: profileMap.get(request.sender_id) || null,
+      ...normalized,
+      senderProfile: profileMap.get(normalized.sender_id) || null,
     }
   })
 
@@ -98,7 +105,12 @@ export async function getMyRequests(
     .range(from, to)
     .order('id', { ascending: false })
 
-  return { data: data || [], error }
+  return {
+    data: (data || []).map((request) =>
+      normalizeStudyRequestRow(request as Record<string, unknown>),
+    ),
+    error,
+  }
 }
 
 export async function updateRequestStatus(requestId: number, status: string) {
@@ -126,16 +138,11 @@ export async function getRequestById(requestId: number) {
 
   const { data: profiles } = await getProfilesByUserIds([String(data.sender_id || '')])
 
+  const normalized = normalizeStudyRequestRow(data as Record<string, unknown>)
+
   return {
     data: {
-      ...data,
-      sender_id: String(data.sender_id || ''),
-      receiver_id: String(data.receiver_id || ''),
-      title: String(data.title || ''),
-      description: String(data.description || ''),
-      required_role: String(data.required_role || ''),
-      optional_availability: String(data.optional_availability || ''),
-      status: String(data.status || ''),
+      ...normalized,
       senderProfile: profiles?.[0] || null,
     } satisfies RequestItem,
     error: null,

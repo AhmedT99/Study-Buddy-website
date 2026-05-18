@@ -94,10 +94,13 @@ function RequestsPage() {
         return false
       }
 
+      const normalizedQuery = searchQuery.toLowerCase()
+      const title = (request.title || '').toLowerCase()
+      const description = (request.description || '').toLowerCase()
       const matchesSearch =
         searchQuery.trim() === '' ||
-        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.description.toLowerCase().includes(searchQuery.toLowerCase())
+        title.includes(normalizedQuery) ||
+        description.includes(normalizedQuery)
 
       return matchesSearch
     })

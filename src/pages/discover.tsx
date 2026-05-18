@@ -69,23 +69,24 @@ function DiscoverPage() {
         request.senderProfile?.country === countryFilter
       const matchesAvailability =
         availabilityFilter === 'Any Availability' ||
-        request.optional_availability
+        (request.optional_availability || '')
           .toLowerCase()
           .includes(availabilityFilter.toLowerCase())
+      const normalizedQuery = searchQuery.toLowerCase()
       const matchesSearch =
         searchQuery.trim() === '' ||
-        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (request.title || '').toLowerCase().includes(normalizedQuery) ||
+        (request.description || '').toLowerCase().includes(normalizedQuery) ||
         (request.senderProfile?.name || '')
           .toLowerCase()
-          .includes(searchQuery.toLowerCase())
+          .includes(normalizedQuery)
 
       return matchesRole && matchesCountry && matchesAvailability && matchesSearch
     })
 
     if (sortBy === 'role') {
       return [...filtered].sort((a, b) =>
-        a.required_role.localeCompare(b.required_role),
+        (a.required_role || '').localeCompare(b.required_role || ''),
       )
     }
 
